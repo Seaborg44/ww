@@ -15,7 +15,7 @@ public class GamePanel extends JPanel implements ActionListener {
 
     static final int UNIT_SIZE = 25;
     static final int GAME_UNITS = (SCREEN_WIDTH * SCREEN_HEIGHT) / UNIT_SIZE;
-    static final int DELAY = 75;
+    static final int DELAY = 225;
     final int xP1[] = new int[GAME_UNITS];
     final int yP1[] = new int[GAME_UNITS];
     char directionP1 = 'R';
@@ -41,6 +41,7 @@ public class GamePanel extends JPanel implements ActionListener {
         this.setFocusable(true);
         this.addKeyListener(new MyKeyAdapter());
         yP1[0] = 150;
+        xP1[0] = 0;
         yP2[0] = 450;
         xP2[0] = SCREEN_WIDTH;
         startGame();
@@ -49,6 +50,7 @@ public class GamePanel extends JPanel implements ActionListener {
     public void startGame() {
         newApple();
         runningP1 = true;
+        runningP2 = true;
         timer = new Timer(DELAY, this);
         timer.start();
 
@@ -65,7 +67,7 @@ public class GamePanel extends JPanel implements ActionListener {
     }
 
     public void draw(Graphics g) {
-        if (runningP1) {
+        if (runningP1 || runningP2) {
             for (int i = 0; i < SCREEN_HEIGHT / UNIT_SIZE; i++) {
                 g.drawLine(i * UNIT_SIZE, 0, i * UNIT_SIZE, SCREEN_HEIGHT);
                 g.drawLine(0, i * UNIT_SIZE, SCREEN_WIDTH, i * UNIT_SIZE);
@@ -82,6 +84,15 @@ public class GamePanel extends JPanel implements ActionListener {
                     g.fillRect(xP1[i], yP1[i], UNIT_SIZE, UNIT_SIZE);
                 }
             }
+            for (int i = 0; i < bodyPartsP2; i++) {
+                if (i == 0) {
+                    g.setColor(Color.GREEN);
+                    g.fillRect(xP2[i], yP2[i], UNIT_SIZE, UNIT_SIZE);
+                } else {
+                    g.setColor(new Color(45, 180, 0));
+                    g.fillRect(xP2[i], yP2[i], UNIT_SIZE, UNIT_SIZE);
+                }
+            }
             g.setColor(Color.RED);
             g.setFont(new Font("Ink Free", Font.BOLD, 25));
             FontMetrics metrics = getFontMetrics(g.getFont());
@@ -96,7 +107,12 @@ public class GamePanel extends JPanel implements ActionListener {
         for (int i = bodyPartsP1; i > 0; i--) {
             xP1[i] = xP1[i - 1];
             yP1[i] = yP1[i - 1];
-            System.out.println("position X: " + xP1[i] + " position Y: " + yP1[i]);
+            //    System.out.println("position X: " + xP1[i] + " position Y: " + yP1[i]);
+        }
+        for (int i = bodyPartsP2; i > 0; i--) {
+            xP2[i] = xP2[i - 1];
+            yP2[i] = yP2[i - 1];
+            System.out.println("position X: " + xP2[i] + " position Y: " + yP2[i]);
         }
 
         switch (directionP1) {
@@ -104,6 +120,12 @@ public class GamePanel extends JPanel implements ActionListener {
             case 'D' -> yP1[0] = yP1[0] + UNIT_SIZE;
             case 'L' -> xP1[0] = xP1[0] - UNIT_SIZE;
             case 'R' -> xP1[0] = xP1[0] + UNIT_SIZE;
+        }
+        switch (directionP2) {
+            case 'U' -> yP2[0] = yP2[0] - UNIT_SIZE;
+            case 'D' -> yP2[0] = yP2[0] + UNIT_SIZE;
+            case 'L' -> xP2[0] = xP2[0] - UNIT_SIZE;
+            case 'R' -> xP2[0] = xP2[0] + UNIT_SIZE;
         }
 
     }
@@ -114,14 +136,47 @@ public class GamePanel extends JPanel implements ActionListener {
             applesEatenP1++;
             newApple();
         }
+        if (xP2[0] == appleX && yP2[0] == appleY) {
+            bodyPartsP2++;
+            applesEatenP2++;
+            newApple();
+        }
     }
 
-    public void checkCollissions() {
-        for (int i = bodyPartsP1; i > 0; i--) {
-            if (xP1[0] == xP1[i] && yP1[0] == yP1[i]) {
-                runningP1 = false;
+    private void checkCollisionsP2() {
+        for (int i = bodyPartsP2; i > 0; i--) {
+            if ((xP2[0] == xP2[i] && yP2[0] == yP2[i]) || (xP2[0] == xP1[i] && yP2[0] == yP1[i])) {
+                runningP2 = false;
+                System.out.println("player 2 lost");
             }
         }
+        if (xP2[0] < 0) {
+            runningP2 = false;
+        }
+        if (xP2[0] > SCREEN_WIDTH) {
+            runningP2 = false;
+        }
+        if (yP2[0] < 0) {
+            runningP2 = false;
+        }
+        if (yP2[0] > SCREEN_HEIGHT) {
+            runningP2 = false;
+        }
+
+        if (!runningP2) {
+            timer.stop();
+        }
+    }
+
+    public void checkCollisionsP1() {
+        for (int i = bodyPartsP1; i > 0; i--) {
+            if ((xP1[0] == xP1[i] && yP1[0] == yP1[i]) || (xP1[0] == xP2[i] && yP1[0] == yP2[i])) {
+                runningP1 = false;
+                System.out.println("player 1 lost");
+            }
+
+        }
+
         if (xP1[0] < 0) {
             runningP1 = false;
         }
@@ -145,7 +200,7 @@ public class GamePanel extends JPanel implements ActionListener {
         g.setFont(new Font("Ink Free", Font.BOLD, 100));
         FontMetrics metrics = getFontMetrics(g.getFont());
         g.drawString("GAME OVER", (int) (SCREEN_WIDTH - metrics.stringWidth("GAME OVER")) / 2, SCREEN_HEIGHT / 2);
-
+        //todo nie wyswietla sie game over screen
         g.setColor(Color.RED);
         g.setFont(new Font("Ink Free", Font.BOLD, 100));
         FontMetrics score = getFontMetrics(g.getFont());
@@ -157,7 +212,8 @@ public class GamePanel extends JPanel implements ActionListener {
         if (runningP1) {
             move();
             checkApple();
-            checkCollissions();
+            checkCollisionsP1();
+            checkCollisionsP2();
         }
         repaint();
     }
@@ -184,6 +240,26 @@ public class GamePanel extends JPanel implements ActionListener {
                 case KeyEvent.VK_DOWN:
                     if (directionP1 != 'U') {
                         directionP1 = 'D';
+                    }
+                    break;
+                case KeyEvent.VK_A:
+                    if (directionP2 != 'R') {
+                        directionP2 = 'L';
+                    }
+                    break;
+                case KeyEvent.VK_D:
+                    if (directionP2 != 'L') {
+                        directionP2 = 'R';
+                    }
+                    break;
+                case KeyEvent.VK_W:
+                    if (directionP2 != 'D') {
+                        directionP2 = 'U';
+                    }
+                    break;
+                case KeyEvent.VK_S:
+                    if (directionP2 != 'U') {
+                        directionP2 = 'D';
                     }
                     break;
             }
